@@ -1,0 +1,9 @@
+name: 'auto-cancel-action'
+description: 'Cancel redundant actions'
+inputs:
+  access_token:
+    description: 'Github token'
+    required: true
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
