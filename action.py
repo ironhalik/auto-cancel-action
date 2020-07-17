@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-from github import Github
+from github import Github, PaginatedList, WorkflowRun
 from datetime import datetime
+
 
 def main():
     inputs = ActionsContext("input")
@@ -15,17 +16,33 @@ def main():
     else:
         current_branch = context.ref.replace("refs/heads/", "")
 
+    # Kinda hacky.
+    runs_queued = PaginatedList.PaginatedList(
+        WorkflowRun.WorkflowRun,
+        repo._requester,
+        repo.url + "/actions/runs",
+        {"branch": current_branch, "status": "queued"},
+        list_item="workflow_runs",
+    )
+    runs_in_progress = PaginatedList.PaginatedList(
+        WorkflowRun.WorkflowRun,
+        repo._requester,
+        repo.url + "/actions/runs",
+        {"branch": current_branch, "status": "in_progress"},
+        list_item="workflow_runs",
+    )
+
     runs_to_cancel = []
-    for run in repo.get_workflow_runs():
-        if (
-            run.status != "completed"
-            and run.id != current_run_id
-            and run.head_branch == current_branch
-            and run.created_at < current_created_at
-        ):
+
+    for run in runs_queued:
+        if run.id != current_run_id and run.created_at < current_created_at:
             runs_to_cancel.append(run)
 
-    if runs_to_cancel: 
+    for run in runs_in_progress:
+        if run.id != current_run_id and run.created_at < current_created_at:
+            runs_to_cancel.append(run)
+
+    if runs_to_cancel:
         for run in runs_to_cancel:
             print(f"Cancelling run id {run.id}")
             run.cancel()
@@ -47,7 +64,7 @@ class ActionsContext:
 
         for env in environ:
             if env.startswith(prefix):
-                setattr(self, env[len(prefix):].lower(), environ[env])
+                setattr(self, env[len(prefix) :].lower(), environ[env])
 
         del environ
 
