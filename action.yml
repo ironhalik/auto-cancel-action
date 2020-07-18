@@ -4,6 +4,9 @@ inputs:
   access_token:
     description: 'Github token'
     required: true
+  debug:
+    description: 'Be verbose'
+    required: false
 runs:
   using: 'docker'
   image: 'Dockerfile'

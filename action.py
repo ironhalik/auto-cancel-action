@@ -6,6 +6,12 @@ from datetime import datetime
 def main():
     inputs = ActionsContext("input")
     context = ActionsContext("github")
+
+    debug = False
+    if hasattr(inputs, 'debug'):
+        if inputs.debug.lower() in ['true', 'yes', '1']:
+            debug = True
+
     repo = Github(inputs.access_token).get_repo(context.repository)
 
     current_run_id = int(context.run_id)
@@ -32,14 +38,22 @@ def main():
         list_item="workflow_runs",
     )
 
+    if debug:
+        print("Candidates for cancellation: ")
+        for i in runs_queued:
+            print(i)
+        for i in runs_in_progress:
+            print(i)
+
+
     runs_to_cancel = []
 
     for run in runs_queued:
-        if run.id != current_run_id and run.created_at < current_created_at:
+        if run.id != current_run_id and run.created_at <= current_created_at:
             runs_to_cancel.append(run)
 
     for run in runs_in_progress:
-        if run.id != current_run_id and run.created_at < current_created_at:
+        if run.id != current_run_id and run.created_at <= current_created_at:
             runs_to_cancel.append(run)
 
     if runs_to_cancel:
